@@ -1,0 +1,6 @@
+{
+  "name": "Mentora",
+  "description": "A diagnostic math tutor that finds the missing piece behind a mistake.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

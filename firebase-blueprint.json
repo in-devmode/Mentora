@@ -1,0 +1,58 @@
+{
+  "entities": {
+    "Session": {
+      "title": "Session",
+      "description": "A diagnostic math tutoring session tracking events, concept states, and hypotheses.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique session identifier"
+        },
+        "userId": {
+          "type": "string",
+          "description": "The anonymous user ID of the session owner"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Creation timestamp in ISO format"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Last update timestamp"
+        },
+        "phase": {
+          "type": "string",
+          "description": "Current phase of the session"
+        },
+        "currentQuestionId": {
+          "type": "string",
+          "description": "The active question ID"
+        },
+        "events": {
+          "type": "array",
+          "description": "List of timestamped session interaction events"
+        },
+        "concepts": {
+          "type": "object",
+          "description": "Concept mastery states dictionary"
+        },
+        "hypotheses": {
+          "type": "object",
+          "description": "Prerequisite hypothesis states dictionary"
+        },
+        "hintsUsed": {
+          "type": "array",
+          "description": "Questions where hints were used"
+        }
+      },
+      "required": ["id", "userId", "phase", "currentQuestionId", "events", "concepts", "hypotheses"]
+    }
+  },
+  "firestore": {
+    "/sessions/{userId}/{sessionId}": {
+      "schema": "Session",
+      "description": "Stores user diagnostic learning sessions organized under the owner user's UID."
+    }
+  }
+}

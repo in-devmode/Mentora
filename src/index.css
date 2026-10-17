@@ -1,0 +1,63 @@
+@import "tailwindcss";
+@import "katex/dist/katex.min.css";
+
+@theme {
+  --color-paper: #FAF8F4;
+  --color-surface: #FFFFFF;
+  --color-line: #E6E1D8;
+  --color-ink: #16181D;
+  --color-ink-2: #4B505A;
+  --color-ink-3: #666B75;
+  --color-accent: #27408B;
+  --color-accent-tint: #E9EDF8;
+
+  --color-status-unassessed-fg: #5F646D;
+  --color-status-unassessed-bg: #EEECE7;
+  --color-status-developing-fg: #8A5A00;
+  --color-status-developing-bg: #FBF0D5;
+  --color-status-gap-fg: #A23B22;
+  --color-status-gap-bg: #F9E4DD;
+  --color-status-demonstrated-fg: #1F6B47;
+  --color-status-demonstrated-bg: #E1F1E8;
+
+  --font-serif: 'Newsreader', Georgia, serif;
+  --font-sans: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: #FAF8F4;
+  color: #16181D;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* KaTeX sizing to ~1.2em */
+.katex {
+  font-size: 1.18em;
+}
+
+/* Hairline border utility */
+.border-line {
+  border-color: #E6E1D8;
+}
+
+/* Focus styles */
+*:focus-visible {
+  outline: 2px solid #27408B;
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
