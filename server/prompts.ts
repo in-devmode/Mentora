@@ -1,4 +1,12 @@
-import { Type } from '@google/genai';
+export const Type = {
+  OBJECT: 'OBJECT',
+  STRING: 'STRING',
+  NUMBER: 'NUMBER',
+  INTEGER: 'INTEGER',
+  BOOLEAN: 'BOOLEAN',
+  ARRAY: 'ARRAY',
+} as const;
+
 import { InterpretRequest, TeachRequest } from './schemas';
 
 export const PROMPT_VERSION = 'v1.0.0';

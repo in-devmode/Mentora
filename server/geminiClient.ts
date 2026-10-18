@@ -1,6 +1,11 @@
-import dotenv from 'dotenv';
-
-dotenv.config();
+// Safely load local .env in Node 20+ environments if available without CommonJS dotenv
+if (typeof process !== 'undefined' && typeof (process as any).loadEnvFile === 'function') {
+  try {
+    (process as any).loadEnvFile();
+  } catch {
+    // .env file not present or running in cloud container with pre-injected env vars
+  }
+}
 
 export const MODEL_ID = process.env.GEMINI_MODEL || 'gemini-3.5-flash';
 export const FALLBACK_MODEL_ID = 'gemini-flash-latest';
