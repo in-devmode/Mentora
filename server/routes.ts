@@ -1,6 +1,5 @@
 import { Request, Response, Router } from 'express';
-import { ThinkingLevel } from '@google/genai';
-import { ai, MODEL_ID } from './config';
+import { ai, MODEL_ID, FALLBACK_MODEL_ID } from './config';
 import { rateLimitMiddleware } from './ratelimit';
 import {
   InterpretRequestSchema,
@@ -31,7 +30,8 @@ const router = Router();
 // Apply rate limiting middleware to all /api routes
 router.use(rateLimitMiddleware);
 
-const TIMEOUT_MS = 12000;
+const TIMEOUT_MS = 15000;
+const MATH_TIMEOUT_MS = 35000;
 
 async function executeWithTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
   let timer: NodeJS.Timeout;
@@ -62,19 +62,16 @@ router.post('/interpret', async (req: Request, res: Response): Promise<void> => 
   const validReq = parseResult.data;
   const prompt = buildInterpretPrompt(validReq);
 
-  // Helper for single attempt
-  const callModel = async () => {
+  // Helper for attempt
+  const callModel = async (modelName: string = MODEL_ID) => {
     const response = await ai.models.generateContent({
-      model: MODEL_ID,
+      model: modelName,
       contents: prompt,
       config: {
         systemInstruction: SYSTEM_PROMPT,
         temperature: 0.2,
         responseMimeType: 'application/json',
         responseSchema: INTERPRET_RESPONSE_SCHEMA,
-        thinkingConfig: {
-          thinkingLevel: ThinkingLevel.LOW,
-        },
       },
     });
 
@@ -86,10 +83,10 @@ router.post('/interpret', async (req: Request, res: Response): Promise<void> => 
   try {
     let result;
     try {
-      result = await executeWithTimeout(callModel(), TIMEOUT_MS);
+      result = await executeWithTimeout(callModel(MODEL_ID), TIMEOUT_MS);
     } catch {
-      // Retry once on invalid JSON / schema failure / transient error
-      result = await executeWithTimeout(callModel(), TIMEOUT_MS);
+      // Retry with fallback model
+      result = await executeWithTimeout(callModel(FALLBACK_MODEL_ID), TIMEOUT_MS);
     }
 
     res.json({
@@ -123,18 +120,15 @@ router.post('/teach', async (req: Request, res: Response): Promise<void> => {
   const validReq = parseResult.data;
   const prompt = buildTeachPrompt(validReq);
 
-  const callModel = async () => {
+  const callModel = async (modelName: string = MODEL_ID) => {
     const response = await ai.models.generateContent({
-      model: MODEL_ID,
+      model: modelName,
       contents: prompt,
       config: {
         systemInstruction: SYSTEM_PROMPT,
         temperature: 0.2,
         responseMimeType: 'application/json',
         responseSchema: TEACH_RESPONSE_SCHEMA,
-        thinkingConfig: {
-          thinkingLevel: ThinkingLevel.LOW,
-        },
       },
     });
 
@@ -146,10 +140,10 @@ router.post('/teach', async (req: Request, res: Response): Promise<void> => {
   try {
     let result;
     try {
-      result = await executeWithTimeout(callModel(), TIMEOUT_MS);
+      result = await executeWithTimeout(callModel(MODEL_ID), TIMEOUT_MS);
     } catch {
-      // Retry once on invalid output
-      result = await executeWithTimeout(callModel(), TIMEOUT_MS);
+      // Retry with fallback model
+      result = await executeWithTimeout(callModel(FALLBACK_MODEL_ID), TIMEOUT_MS);
     }
 
     res.json({
@@ -165,8 +159,6 @@ router.post('/teach', async (req: Request, res: Response): Promise<void> => {
     });
   }
 });
-
-const MATH_TIMEOUT_MS = 25000;
 
 // POST /api/math/solve - Universal Math Problem Solver & Tutor
 router.post('/math/solve', async (req: Request, res: Response): Promise<void> => {
@@ -188,7 +180,7 @@ router.post('/math/solve', async (req: Request, res: Response): Promise<void> =>
     hasImage: Boolean(validReq.imageData),
   });
 
-  const callModel = async () => {
+  const callModel = async (modelName: string = MODEL_ID) => {
     let contents: any;
     if (validReq.imageData) {
       contents = {
@@ -207,16 +199,13 @@ router.post('/math/solve', async (req: Request, res: Response): Promise<void> =>
     }
 
     const response = await ai.models.generateContent({
-      model: MODEL_ID,
+      model: modelName,
       contents,
       config: {
         systemInstruction: SOLVE_MATH_SYSTEM_PROMPT,
         temperature: 0.2,
         responseMimeType: 'application/json',
         responseSchema: SOLVE_MATH_RESPONSE_SCHEMA,
-        thinkingConfig: {
-          thinkingLevel: ThinkingLevel.LOW,
-        },
       },
     });
 
@@ -228,10 +217,10 @@ router.post('/math/solve', async (req: Request, res: Response): Promise<void> =>
   try {
     let result;
     try {
-      result = await executeWithTimeout(callModel(), MATH_TIMEOUT_MS);
-    } catch {
-      // Retry once on failure
-      result = await executeWithTimeout(callModel(), MATH_TIMEOUT_MS);
+      result = await executeWithTimeout(callModel(MODEL_ID), MATH_TIMEOUT_MS);
+    } catch (primaryErr) {
+      console.warn('Primary model error, attempting fallback:', primaryErr);
+      result = await executeWithTimeout(callModel(FALLBACK_MODEL_ID), MATH_TIMEOUT_MS);
     }
 
     res.json({
@@ -244,7 +233,10 @@ router.post('/math/solve', async (req: Request, res: Response): Promise<void> =>
     res.status(500).json({
       success: false,
       error: err?.message === 'REQUEST_TIMEOUT' ? 'timeout' : 'ai_unavailable',
-      message: 'Mentora encountered an issue analyzing this problem. Please try rephrasing or submitting again.',
+      message:
+        err?.message === 'REQUEST_TIMEOUT'
+          ? 'Mentora took longer than expected to analyze this problem. Please try rephrasing or submitting again.'
+          : 'Mentora encountered an issue analyzing this problem. Please try rephrasing or submitting again.',
     });
   }
 });
@@ -264,18 +256,15 @@ router.post('/math/check-practice', async (req: Request, res: Response): Promise
   const validReq = parseResult.data;
   const prompt = buildPracticeCheckPrompt(validReq);
 
-  const callModel = async () => {
+  const callModel = async (modelName: string = MODEL_ID) => {
     const response = await ai.models.generateContent({
-      model: MODEL_ID,
+      model: modelName,
       contents: prompt,
       config: {
         systemInstruction: PRACTICE_CHECK_SYSTEM_PROMPT,
         temperature: 0.1,
         responseMimeType: 'application/json',
         responseSchema: PRACTICE_CHECK_RESPONSE_SCHEMA,
-        thinkingConfig: {
-          thinkingLevel: ThinkingLevel.LOW,
-        },
       },
     });
 
@@ -287,9 +276,9 @@ router.post('/math/check-practice', async (req: Request, res: Response): Promise
   try {
     let result;
     try {
-      result = await executeWithTimeout(callModel(), 15000);
+      result = await executeWithTimeout(callModel(MODEL_ID), 15000);
     } catch {
-      result = await executeWithTimeout(callModel(), 15000);
+      result = await executeWithTimeout(callModel(FALLBACK_MODEL_ID), 15000);
     }
 
     res.json({
