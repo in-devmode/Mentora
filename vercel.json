@@ -3,11 +3,11 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "/api"
+      "destination": "/api?endpoint=$1"
     },
     {
       "source": "/api",
-      "destination": "/api"
+      "destination": "/api?endpoint=health"
     },
     {
       "source": "/(.*)",
