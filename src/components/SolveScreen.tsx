@@ -17,11 +17,15 @@ import {
   ChevronRight,
   HelpCircle,
   Compass,
+  History,
 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { saveMathSolution, MathHistoryItem } from '../lib/history';
 
 interface SolveScreenProps {
   onNavigate: (path: string) => void;
   initialProblem?: string;
+  loadedHistoryItem?: MathHistoryItem | null;
 }
 
 export interface MathStep {
@@ -29,7 +33,7 @@ export interface MathStep {
   title: string;
   latex: string;
   explanation: string;
-  pitfall: string;
+  pitfall?: string;
 }
 
 export interface SolveResponseData {
@@ -130,7 +134,9 @@ const SYMBOL_SHORTCUTS = [
 export const SolveScreen: React.FC<SolveScreenProps> = ({
   onNavigate,
   initialProblem = '',
+  loadedHistoryItem = null,
 }) => {
+  const { openHistoryModal } = useAuth();
   const [problemText, setProblemText] = useState(initialProblem);
   const [mode, setMode] = useState<'full_solution' | 'step_by_step_tutor' | 'check_student_attempt'>('full_solution');
   const [studentAttempt, setStudentAttempt] = useState('');
@@ -140,6 +146,37 @@ export const SolveScreen: React.FC<SolveScreenProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [solution, setSolution] = useState<SolveResponseData | null>(null);
+
+  // If loaded from history, populate solution immediately
+  useEffect(() => {
+    if (loadedHistoryItem) {
+      setProblemText(loadedHistoryItem.problemText);
+      setMode(loadedHistoryItem.mode);
+      setSolution({
+        topic: loadedHistoryItem.topic,
+        subtopic: loadedHistoryItem.subtopic,
+        difficulty: loadedHistoryItem.difficulty,
+        problemLatex: loadedHistoryItem.problemLatex,
+        finalAnswerPlain: loadedHistoryItem.finalAnswerPlain,
+        finalAnswerLatex: loadedHistoryItem.finalAnswerLatex,
+        concepts: loadedHistoryItem.concepts,
+        steps: loadedHistoryItem.steps,
+        keyFormulas: [],
+        verification: 'Loaded from your math solving history.',
+        practiceProblem: {
+          problemText: loadedHistoryItem.problemText,
+          expectedAnswer: loadedHistoryItem.finalAnswerPlain,
+          hint: 'Review the step-by-step walkthrough above.',
+        },
+      });
+      setTimeout(() => {
+        const el = document.getElementById('solution-output');
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 100);
+    }
+  }, [loadedHistoryItem]);
 
   // Practice problem interactive checker state
   const [practiceAnswer, setPracticeAnswer] = useState('');
@@ -235,6 +272,23 @@ export const SolveScreen: React.FC<SolveScreenProps> = ({
       }
 
       setSolution(json.data);
+
+      // Save to math solving history
+      saveMathSolution({
+        problemText: problemText.trim(),
+        problemLatex: json.data.problemLatex || problemText.trim(),
+        topic: json.data.topic || 'General Math',
+        subtopic: json.data.subtopic || '',
+        difficulty: json.data.difficulty || 'Intermediate',
+        mode,
+        finalAnswerPlain: json.data.finalAnswerPlain || '',
+        finalAnswerLatex: json.data.finalAnswerLatex || '',
+        steps: json.data.steps || [],
+        concepts: json.data.concepts || [],
+      }).catch((saveErr) => {
+        console.warn('Could not save math solution to history:', saveErr);
+      });
+
       // Smooth scroll to solution area
       setTimeout(() => {
         const el = document.getElementById('solution-output');
@@ -317,40 +371,52 @@ export const SolveScreen: React.FC<SolveScreenProps> = ({
           </p>
         </div>
 
-        {/* Mode Selector Tabs */}
-        <div className="flex flex-wrap items-center gap-2 p-1 bg-[#EFECE6] rounded-[8px] max-w-fit mb-6">
+        {/* Mode Selector Tabs & Past Solutions */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+          <div className="flex flex-wrap items-center gap-1.5 p-1 bg-[#EFECE6] rounded-[8px] max-w-fit">
+            <button
+              type="button"
+              onClick={() => setMode('full_solution')}
+              className={`px-3 py-1.5 text-[13px] font-medium rounded-[6px] transition-all cursor-pointer ${
+                mode === 'full_solution'
+                  ? 'bg-white text-[#16181D] shadow-xs'
+                  : 'text-[#4B505A] hover:text-[#16181D]'
+              }`}
+            >
+              Complete Step-by-Step
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode('check_student_attempt')}
+              className={`px-3 py-1.5 text-[13px] font-medium rounded-[6px] transition-all cursor-pointer ${
+                mode === 'check_student_attempt'
+                  ? 'bg-white text-[#16181D] shadow-xs'
+                  : 'text-[#4B505A] hover:text-[#16181D]'
+              }`}
+            >
+              Diagnose My Attempt (Find Slip)
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode('step_by_step_tutor')}
+              className={`px-3 py-1.5 text-[13px] font-medium rounded-[6px] transition-all cursor-pointer ${
+                mode === 'step_by_step_tutor'
+                  ? 'bg-white text-[#16181D] shadow-xs'
+                  : 'text-[#4B505A] hover:text-[#16181D]'
+              }`}
+            >
+              Socratic Guidance
+            </button>
+          </div>
+
           <button
             type="button"
-            onClick={() => setMode('full_solution')}
-            className={`px-3 py-1.5 text-[13px] font-medium rounded-[6px] transition-all cursor-pointer ${
-              mode === 'full_solution'
-                ? 'bg-white text-[#16181D] shadow-xs'
-                : 'text-[#4B505A] hover:text-[#16181D]'
-            }`}
+            onClick={openHistoryModal}
+            className="h-[36px] px-3.5 rounded-[6px] border border-[#E6E1D8] bg-white hover:bg-[#FAF8F4] text-[13px] font-medium text-[#16181D] inline-flex items-center gap-2 transition-colors cursor-pointer self-start sm:self-auto shrink-0 shadow-2xs"
+            title="Open past math solving history"
           >
-            Complete Step-by-Step
-          </button>
-          <button
-            type="button"
-            onClick={() => setMode('check_student_attempt')}
-            className={`px-3 py-1.5 text-[13px] font-medium rounded-[6px] transition-all cursor-pointer ${
-              mode === 'check_student_attempt'
-                ? 'bg-white text-[#16181D] shadow-xs'
-                : 'text-[#4B505A] hover:text-[#16181D]'
-            }`}
-          >
-            Diagnose My Attempt (Find Slip)
-          </button>
-          <button
-            type="button"
-            onClick={() => setMode('step_by_step_tutor')}
-            className={`px-3 py-1.5 text-[13px] font-medium rounded-[6px] transition-all cursor-pointer ${
-              mode === 'step_by_step_tutor'
-                ? 'bg-white text-[#16181D] shadow-xs'
-                : 'text-[#4B505A] hover:text-[#16181D]'
-            }`}
-          >
-            Socratic Guidance
+            <History className="w-4 h-4 text-[#27408B]" />
+            <span>Past Solutions</span>
           </button>
         </div>
 

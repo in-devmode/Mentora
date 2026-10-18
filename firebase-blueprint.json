@@ -11,7 +11,7 @@
         },
         "userId": {
           "type": "string",
-          "description": "The anonymous user ID of the session owner"
+          "description": "The user ID of the session owner"
         },
         "createdAt": {
           "type": "string",
@@ -47,12 +47,116 @@
         }
       },
       "required": ["id", "userId", "phase", "currentQuestionId", "events", "concepts", "hypotheses"]
+    },
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Profile information for registered and signed-in students.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Firebase Auth user identifier"
+        },
+        "email": {
+          "type": "string",
+          "description": "User email address"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Optional display name or handle"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Account registration timestamp"
+        },
+        "lastActiveAt": {
+          "type": "string",
+          "description": "Last activity timestamp"
+        },
+        "mathSolvedCount": {
+          "type": "integer",
+          "description": "Total number of math problems solved"
+        },
+        "sessionsCompletedCount": {
+          "type": "integer",
+          "description": "Total number of diagnostic sessions completed"
+        }
+      },
+      "required": ["uid", "createdAt"]
+    },
+    "MathHistory": {
+      "title": "MathHistory",
+      "description": "Saved math problem solutions and explanations for student review and history.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique history entry ID"
+        },
+        "userId": {
+          "type": "string",
+          "description": "User UID who solved this problem"
+        },
+        "problemText": {
+          "type": "string",
+          "description": "Original raw math problem entered by student"
+        },
+        "problemLatex": {
+          "type": "string",
+          "description": "Typeset LaTeX representation of the problem"
+        },
+        "topic": {
+          "type": "string",
+          "description": "Mathematical branch (e.g. Calculus, Algebra)"
+        },
+        "subtopic": {
+          "type": "string",
+          "description": "Specific mathematical topic"
+        },
+        "difficulty": {
+          "type": "string",
+          "description": "Problem difficulty rating"
+        },
+        "mode": {
+          "type": "string",
+          "description": "Learning mode used (solve, guide, diagnose)"
+        },
+        "finalAnswerPlain": {
+          "type": "string",
+          "description": "Plain text solution answer"
+        },
+        "finalAnswerLatex": {
+          "type": "string",
+          "description": "Typeset LaTeX solution answer"
+        },
+        "steps": {
+          "type": "array",
+          "description": "Step-by-step breakdown of the solution"
+        },
+        "concepts": {
+          "type": "array",
+          "description": "List of core mathematical concepts involved"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when problem was solved"
+        }
+      },
+      "required": ["id", "userId", "problemText", "topic", "finalAnswerPlain", "steps", "createdAt"]
     }
   },
   "firestore": {
     "/sessions/{userId}/{sessionId}": {
       "schema": "Session",
       "description": "Stores user diagnostic learning sessions organized under the owner user's UID."
+    },
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Stores student user profile data strictly isolated to the user UID."
+    },
+    "/users/{userId}/mathHistory/{historyId}": {
+      "schema": "MathHistory",
+      "description": "Stores student math solving history and step-by-step solutions."
     }
   }
 }

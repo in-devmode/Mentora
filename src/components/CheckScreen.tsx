@@ -819,6 +819,26 @@ export const CheckScreen: React.FC<CheckScreenProps> = ({
                   )}
                 </div>
 
+                {/* Active Keyboard Shortcuts Legend */}
+                <div
+                  className="pt-1 flex items-center gap-2 text-[12px] text-[#666B75] select-none"
+                  aria-label="Active keyboard shortcuts"
+                >
+                  <span className="inline-flex items-center gap-1 font-mono text-[11px]">
+                    <kbd className="px-1.5 py-0.5 rounded-[3px] bg-[#EEECE7] text-[#16181D] border border-[#E6E1D8] font-mono shadow-2xs">
+                      ↵ Enter
+                    </kbd>
+                    <span>to submit</span>
+                  </span>
+                  <span className="text-[#E6E1D8]">·</span>
+                  <span className="inline-flex items-center gap-1 font-mono text-[11px]">
+                    <kbd className="px-1.5 py-0.5 rounded-[3px] bg-[#EEECE7] text-[#16181D] border border-[#E6E1D8] font-mono shadow-2xs">
+                      Esc
+                    </kbd>
+                    <span>to return</span>
+                  </span>
+                </div>
+
                 {/* Inline Waiting / Slow line (No looping spinner) */}
                 {isAiInFlight && (
                   <div className="pt-2 text-[13px] text-[#666B75] font-mono flex items-center gap-3">
@@ -1088,7 +1108,16 @@ export const CheckScreen: React.FC<CheckScreenProps> = ({
           <p className="max-w-[65ch] text-left">
             Prototype for algebra and introductory limits. Mentora tests hypotheses and can be wrong; it doesn't replace a teacher.
           </p>
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-3 sm:gap-4">
+            <div className="hidden sm:flex items-center gap-1.5 text-[11px] font-mono text-[#666B75]">
+              <span className="text-[#666B75]/70">Shortcuts:</span>
+              <kbd className="px-1.5 py-0.5 rounded-[3px] bg-[#EEECE7] text-[#16181D] border border-[#E6E1D8]">↵ Enter</kbd>
+              <span>submit</span>
+              <span className="text-[#E6E1D8]">·</span>
+              <kbd className="px-1.5 py-0.5 rounded-[3px] bg-[#EEECE7] text-[#16181D] border border-[#E6E1D8]">Esc</kbd>
+              <span>return</span>
+            </div>
+            <span className="hidden sm:inline text-[#E6E1D8]">·</span>
             <button
               type="button"
               onClick={onNavigateHome}

@@ -7,8 +7,18 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
-    // User sessions: a signed-in user can read and write only documents under their own uid; deny everything else
+    // User sessions: owner user can read, create, update, delete only their own sessions
     match /sessions/{userId}/{sessionId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // User profile: owner user can read and manage only their own profile
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Math solving history: owner user can read, create, update, delete their own math solutions
+    match /users/{userId}/mathHistory/{historyId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
   }

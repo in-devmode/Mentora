@@ -4,6 +4,10 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { AuthProvider } from './context/AuthContext';
+import { AuthModal } from './components/AuthModal';
+import { ProfileModal } from './components/ProfileModal';
+import { HistoryModal } from './components/HistoryModal';
 import { HomeScreen } from './components/HomeScreen';
 import { CheckScreen } from './components/CheckScreen';
 import { MapScreen } from './components/MapScreen';
@@ -17,8 +21,9 @@ import {
 } from './lib/engine';
 import { loadSession, saveSession, clearSession, loadRemoteSession } from './lib/storage';
 import { ensureAnonymousAuth } from './lib/firebase';
+import { MathHistoryItem } from './lib/history';
 
-export default function App() {
+function MainApp() {
   const [currentPath, setCurrentPath] = useState<string>(() => {
     const p = window.location.pathname;
     if (p === '/solve' || p === '/check' || p === '/map' || p === '/results') {
@@ -31,6 +36,8 @@ export default function App() {
     return loadSession();
   });
 
+  const [loadedHistoryItem, setLoadedHistoryItem] = useState<MathHistoryItem | null>(null);
+
   // Initialize anonymous Firebase Auth and sync with remote session if available
   useEffect(() => {
     ensureAnonymousAuth()
@@ -38,7 +45,6 @@ export default function App() {
         const remote = await loadRemoteSession();
         if (remote) {
           setSession((prev) => {
-            // If remote is newer or local is empty, update
             if (!prev || (remote.events && remote.events.length >= prev.events.length)) {
               return remote;
             }
@@ -119,53 +125,87 @@ export default function App() {
     navigateTo('/check');
   }, [session, handleUpdateSession, navigateTo]);
 
+  // Select problem from History modal to load into SolveScreen
+  const handleSelectHistoryProblem = useCallback(
+    (item: MathHistoryItem) => {
+      setLoadedHistoryItem(item);
+      navigateTo('/solve');
+    },
+    [navigateTo]
+  );
+
   const activeSession = session || createInitialSession();
 
-  if (currentPath === '/solve') {
-    return <SolveScreen onNavigate={navigateTo} />;
-  }
+  const renderCurrentView = () => {
+    if (currentPath === '/solve') {
+      return (
+        <SolveScreen
+          onNavigate={navigateTo}
+          loadedHistoryItem={loadedHistoryItem}
+        />
+      );
+    }
 
-  if (currentPath === '/map') {
+    if (currentPath === '/map') {
+      return (
+        <MapScreen
+          session={activeSession}
+          onNavigate={navigateTo}
+          onReset={handleReset}
+        />
+      );
+    }
+
+    if (currentPath === '/results') {
+      return (
+        <ResultsScreen
+          session={activeSession}
+          onNavigate={navigateTo}
+          onOneMoreCheck={handleOneMoreCheck}
+          onStartLimitsBridge={handleStartLimitsBridge}
+          onReset={handleReset}
+        />
+      );
+    }
+
+    if (currentPath === '/check') {
+      return (
+        <CheckScreen
+          session={activeSession}
+          onUpdateSession={handleUpdateSession}
+          onNavigate={navigateTo}
+          onNavigateHome={() => navigateTo('/')}
+          onReset={handleReset}
+        />
+      );
+    }
+
     return (
-      <MapScreen
-        session={activeSession}
+      <HomeScreen
+        session={session}
         onNavigate={navigateTo}
+        onStart={handleStartCheck}
+        onResume={handleResumeCheck}
         onReset={handleReset}
       />
     );
-  }
-
-  if (currentPath === '/results') {
-    return (
-      <ResultsScreen
-        session={activeSession}
-        onNavigate={navigateTo}
-        onOneMoreCheck={handleOneMoreCheck}
-        onStartLimitsBridge={handleStartLimitsBridge}
-        onReset={handleReset}
-      />
-    );
-  }
-
-  if (currentPath === '/check') {
-    return (
-      <CheckScreen
-        session={activeSession}
-        onUpdateSession={handleUpdateSession}
-        onNavigate={navigateTo}
-        onNavigateHome={() => navigateTo('/')}
-        onReset={handleReset}
-      />
-    );
-  }
+  };
 
   return (
-    <HomeScreen
-      session={session}
-      onNavigate={navigateTo}
-      onStart={handleStartCheck}
-      onResume={handleResumeCheck}
-      onReset={handleReset}
-    />
+    <>
+      {renderCurrentView()}
+      {/* Global Modals */}
+      <AuthModal />
+      <ProfileModal />
+      <HistoryModal onSelectProblem={handleSelectHistoryProblem} />
+    </>
+  );
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <MainApp />
+    </AuthProvider>
   );
 }
