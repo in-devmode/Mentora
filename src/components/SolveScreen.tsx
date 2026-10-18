@@ -266,7 +266,20 @@ export const SolveScreen: React.FC<SolveScreenProps> = ({
         }),
       });
 
-      const json = await response.json();
+      let json: any;
+      const contentType = response.headers.get('content-type') || '';
+      if (contentType.includes('application/json')) {
+        json = await response.json();
+      } else {
+        const text = await response.text();
+        if (response.status === 404) {
+          throw new Error(
+            'The backend API endpoint was not found (HTTP 404). If deployed to Vercel, please ensure Vercel has built the serverless functions in /api and GEMINI_API_KEY is configured in Project Settings.'
+          );
+        }
+        throw new Error(`Server returned HTTP ${response.status}: ${text.slice(0, 120)}`);
+      }
+
       if (!response.ok || !json.success) {
         throw new Error(json.message || json.error || 'Failed to solve problem');
       }
@@ -324,9 +337,17 @@ export const SolveScreen: React.FC<SolveScreenProps> = ({
         }),
       });
 
-      const json = await response.json();
+      let json: any;
+      const contentType = response.headers.get('content-type') || '';
+      if (contentType.includes('application/json')) {
+        json = await response.json();
+      } else {
+        const text = await response.text();
+        throw new Error(`Server returned HTTP ${response.status}: ${text.slice(0, 120)}`);
+      }
+
       if (!response.ok || !json.success) {
-        throw new Error(json.error || 'Failed to check answer');
+        throw new Error(json.message || json.error || 'Failed to check answer');
       }
 
       setPracticeResult(json.data);

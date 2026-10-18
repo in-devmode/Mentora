@@ -10,7 +10,7 @@ const maxRequests = 30; // 30 requests per window
 const ipRecords = new Map<string, RateRecord>();
 
 // Cleanup stale records periodically
-setInterval(() => {
+const cleanupTimer = setInterval(() => {
   const now = Date.now();
   for (const [ip, record] of ipRecords.entries()) {
     record.timestamps = record.timestamps.filter((ts) => now - ts < windowMs);
@@ -19,6 +19,10 @@ setInterval(() => {
     }
   }
 }, 60 * 1000);
+
+if (cleanupTimer.unref) {
+  cleanupTimer.unref();
+}
 
 export function rateLimitMiddleware(req: Request, res: Response, next: NextFunction): void {
   const ip =

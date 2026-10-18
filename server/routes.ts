@@ -30,8 +30,8 @@ const router = Router();
 // Apply rate limiting middleware to all /api routes
 router.use(rateLimitMiddleware);
 
-const TIMEOUT_MS = 15000;
-const MATH_TIMEOUT_MS = 35000;
+const TIMEOUT_MS = 12000;
+const MATH_TIMEOUT_MS = 14000;
 
 async function executeWithTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
   let timer: NodeJS.Timeout;
@@ -162,6 +162,16 @@ router.post('/teach', async (req: Request, res: Response): Promise<void> => {
 
 // POST /api/math/solve - Universal Math Problem Solver & Tutor
 router.post('/math/solve', async (req: Request, res: Response): Promise<void> => {
+  if (!process.env.GEMINI_API_KEY) {
+    res.status(503).json({
+      success: false,
+      error: 'missing_gemini_api_key',
+      message:
+        'GEMINI_API_KEY environment variable is missing. On Vercel, go to Project Settings -> Environment Variables, add GEMINI_API_KEY, and redeploy.',
+    });
+    return;
+  }
+
   const parseResult = SolveMathRequestSchema.safeParse(req.body);
   if (!parseResult.success) {
     res.status(400).json({
@@ -243,6 +253,16 @@ router.post('/math/solve', async (req: Request, res: Response): Promise<void> =>
 
 // POST /api/math/check-practice - Check a student answer to follow-up math practice
 router.post('/math/check-practice', async (req: Request, res: Response): Promise<void> => {
+  if (!process.env.GEMINI_API_KEY) {
+    res.status(503).json({
+      success: false,
+      error: 'missing_gemini_api_key',
+      message:
+        'GEMINI_API_KEY environment variable is missing. On Vercel, go to Project Settings -> Environment Variables, add GEMINI_API_KEY, and redeploy.',
+    });
+    return;
+  }
+
   const parseResult = PracticeCheckRequestSchema.safeParse(req.body);
   if (!parseResult.success) {
     res.status(400).json({
@@ -276,9 +296,9 @@ router.post('/math/check-practice', async (req: Request, res: Response): Promise
   try {
     let result;
     try {
-      result = await executeWithTimeout(callModel(MODEL_ID), 15000);
+      result = await executeWithTimeout(callModel(MODEL_ID), 12000);
     } catch {
-      result = await executeWithTimeout(callModel(FALLBACK_MODEL_ID), 15000);
+      result = await executeWithTimeout(callModel(FALLBACK_MODEL_ID), 12000);
     }
 
     res.json({
@@ -289,6 +309,7 @@ router.post('/math/check-practice', async (req: Request, res: Response): Promise
     res.status(500).json({
       success: false,
       error: err?.message === 'REQUEST_TIMEOUT' ? 'timeout' : 'ai_unavailable',
+      message: 'Could not verify answer at this time. Please check your connection and try again.',
     });
   }
 });

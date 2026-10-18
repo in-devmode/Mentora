@@ -54,6 +54,11 @@ export async function requestInterpret(payload: {
       return { success: false, fallback: true, error: `HTTP_${res.status}` };
     }
 
+    const contentType = res.headers.get('content-type') || '';
+    if (!contentType.includes('application/json')) {
+      return { success: false, fallback: true, error: 'non_json' };
+    }
+
     const json = await res.json();
     return json;
   } catch (err: any) {
@@ -98,6 +103,11 @@ export async function requestTeach(payload: {
         };
       }
       return { success: false, fallback: true, error: `HTTP_${res.status}` };
+    }
+
+    const contentType = res.headers.get('content-type') || '';
+    if (!contentType.includes('application/json')) {
+      return { success: false, fallback: true, error: 'non_json' };
     }
 
     const json = await res.json();
